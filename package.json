@@ -1,0 +1,15 @@
+{
+  "name": "netscope-network-diagnostics",
+  "version": "2.0.0",
+  "private": true,
+  "description": "一次性网络环境测速与系统诊断工具",
+  "scripts": {
+    "dev": "python server.py",
+    "start": "python server.py",
+    "test": "node tests/test_metrics.js && python -m unittest discover -s tests -v",
+    "check": "node --check app.js && node --check metrics.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

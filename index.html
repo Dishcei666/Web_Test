@@ -1,134 +1,165 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>网络环境测试台 · NetScope</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="netscope-token" content="__NETSCOPE_TOKEN__">
+  <meta name="description" content="NetScope 一次性网络环境检测：速率、延迟、Bufferbloat、多节点与系统诊断。">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://speed.cloudflare.com https://www.cloudflare.com https://ipwho.is; object-src 'none'; base-uri 'none'; frame-ancestors 'none'">
+  <title>NetScope · 网络环境测试台</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-<header>
-  <div class="brand">
-    <h1>网络环境测试台</h1>
-    <span class="sub">NetScope · 本地运行 · 国际节点 Cloudflare</span>
-  </div>
-  <div class="hdr-right">
-    <label class="dur">并发连接
-      <select id="connSel">
-        <option value="4" selected>4</option>
-        <option value="8">8</option>
-        <option value="16">16</option>
-      </select>
-    </label>
-    <label class="dur">测试时长
-      <select id="durationSel">
-        <option value="fast">快速（约 13 秒）</option>
-        <option value="std" selected>标准（约 21 秒）</option>
-      </select>
-    </label>
-    <span id="serverBadge" class="badge off" title="运行 python server.py 后可启用国内节点测速、双栈检测与系统级诊断">诊断服务：未连接</span>
-  </div>
-</header>
-
-<main>
-
-  <!-- ============ 主测速区（最醒目） ============ -->
-  <section class="hero">
-    <div class="gauge-wrap">
-      <canvas id="gauge" width="320" height="320"></canvas>
-      <button id="startBtn">开始测试</button>
+  <div class="ambient" aria-hidden="true"></div>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="NetScope 首页">
+      <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span><strong>NetScope</strong><small>网络环境测试台</small></span>
+    </a>
+    <div class="header-actions">
+      <div class="select-control">
+        <label for="connSel">并发</label>
+        <select id="connSel"><option value="4" selected>4 连接</option><option value="8">8 连接</option><option value="16">16 连接</option></select>
+      </div>
+      <div class="select-control">
+        <label for="durationSel">时长</label>
+        <select id="durationSel"><option value="fast">快速 · 约 13 秒</option><option value="std" selected>标准 · 约 21 秒</option></select>
+      </div>
+      <span id="serverBadge" class="badge">基础浏览器模式</span>
+      <button id="cancelBtn" class="cancel-btn" hidden>取消当前任务</button>
     </div>
-    <div class="status-wrap">
-      <div id="status" class="status">点击「开始测试」，依次测量 IP 信息、延迟抖动、下载与上传</div>
+  </header>
 
-      <div class="metrics-primary">
-        <div class="metric big down-card" id="cardDown">
-          <span class="m-label">下载</span>
-          <span class="m-value"><span id="mDown">--</span><small>Mbps</small></span>
+  <main>
+    <section class="hero-shell" aria-labelledby="pageTitle">
+      <div class="hero-copy">
+        <p class="eyebrow">ONE-SHOT NETWORK SNAPSHOT</p>
+        <h1 id="pageTitle">看清此刻的网络状态</h1>
+        <p>从吞吐、延迟到系统链路，一次检测形成可导出的网络快照。</p>
+      </div>
+      <div class="hero-grid">
+        <div class="gauge-column">
+          <div class="gauge-wrap">
+            <canvas id="gauge" width="320" height="320" role="img" aria-label="当前速率 0 Mbps"></canvas>
+            <button id="startBtn" class="start-btn"><span>开始测试</span><small>START</small></button>
+          </div>
+          <p class="traffic-note"><span aria-hidden="true">◆</span> 测速会消耗真实流量，按量计费网络请谨慎使用</p>
         </div>
-        <div class="metric big up-card" id="cardUp">
-          <span class="m-label">上传</span>
-          <span class="m-value"><span id="mUp">--</span><small>Mbps</small></span>
+        <div class="status-wrap">
+          <div id="status" class="status" role="status" aria-live="polite">准备就绪，将依次测量环境信息、延迟、下载与上传</div>
+          <div class="metrics-primary">
+            <article class="metric big down-card" id="cardDown">
+              <div class="metric-head"><span>下载速率</span><span class="metric-icon" aria-hidden="true">↓</span></div>
+              <div class="metric-value"><span id="mDown">--</span><small>Mbps</small></div>
+              <span class="metric-caption">DOWNSTREAM</span>
+            </article>
+            <article class="metric big up-card" id="cardUp">
+              <div class="metric-head"><span>上传速率</span><span class="metric-icon" aria-hidden="true">↑</span></div>
+              <div class="metric-value"><span id="mUp">--</span><small>Mbps</small></div>
+              <span class="metric-caption">UPSTREAM</span>
+            </article>
+          </div>
+          <div class="metrics-secondary">
+            <article class="metric"><span class="m-label">空载延迟</span><span class="m-value" id="mPing">--</span><span class="m-unit">ms · 中位数</span></article>
+            <article class="metric"><span class="m-label">抖动</span><span class="m-value" id="mJitter">--</span><span class="m-unit">ms · 相邻差均值</span></article>
+            <article class="metric"><span class="m-label">HTTP 失败率</span><span class="m-value" id="mLoss">--</span><span class="m-unit">% · 非 ICMP 丢包</span></article>
+            <article class="metric"><span class="m-label">Bufferbloat</span><span class="m-value" id="mBloat">--</span><span class="m-unit">参考等级</span></article>
+          </div>
         </div>
       </div>
+    </section>
 
-      <div class="metrics metrics-secondary">
-        <div class="metric"><span class="m-label">延迟</span><span class="m-value" id="mPing">--</span><span class="m-unit">ms</span></div>
-        <div class="metric"><span class="m-label">抖动</span><span class="m-value" id="mJitter">--</span><span class="m-unit">ms</span></div>
-        <div class="metric"><span class="m-label">丢包估算</span><span class="m-value" id="mLoss">--</span><span class="m-unit">%</span></div>
-        <div class="metric"><span class="m-label">延迟膨胀</span><span class="m-value" id="mBloat">--</span><span class="m-unit"></span></div>
+    <section class="panel chart-panel" aria-labelledby="chartTitle">
+      <div class="panel-head">
+        <div><p class="section-kicker">THROUGHPUT</p><h2 id="chartTitle">实时速率曲线</h2></div>
+        <div class="legend" aria-label="图例"><span class="down">下载</span><span class="up">上传</span><span class="unit">Mbps / 时间</span></div>
       </div>
-    </div>
-  </section>
+      <canvas id="chart" height="180" role="img" aria-label="下载和上传速率随时间变化曲线"></canvas>
+    </section>
 
-  <section class="panel">
-    <h2>实时速率曲线</h2>
-    <canvas id="chart" height="150"></canvas>
-  </section>
+    <section class="panel" id="comparePanel" aria-labelledby="compareTitle">
+      <div class="panel-head compare-head">
+        <div><p class="section-kicker">REFERENCE COMPARISON</p><h2 id="compareTitle">多节点参考对比</h2><p class="panel-desc">统一为 3 条连接、5 秒测量、1 秒预热；结果用于发现差异，不直接判定故障归属。</p></div>
+        <button id="compareBtn" class="secondary-btn">运行参考对比<span>约 30–45 秒</span></button>
+      </div>
+      <div class="table-wrap">
+        <table class="cmp" id="cmpTable" hidden>
+          <thead><tr><th>节点 / 通道</th><th>类型</th><th>连接 / 首字节</th><th>下载 Mbps</th><th>相对速率</th></tr></thead>
+          <tbody id="cmpBody"></tbody>
+        </table>
+      </div>
+      <div id="cmpStatus" class="empty" role="status" aria-live="polite">依次测量 Cloudflare、国内公共节点及 IPv4 / IPv6，避免并行测试相互抢占带宽。</div>
+    </section>
 
-  <!-- ============ 多节点对比 ============ -->
-  <section class="panel" id="comparePanel">
-    <h2>多节点对比测速 <span class="tag">定位「宽带慢」还是「国际链路慢」</span></h2>
-    <button id="compareBtn" class="ghost-btn">运行对比（国际 + 国内节点，约 30 秒）</button>
-    <table class="cmp" id="cmpTable" hidden>
-      <thead><tr><th>节点</th><th>线路</th><th>首字节</th><th style="width:120px">下载 Mbps</th><th style="width:34%">对比</th></tr></thead>
-      <tbody id="cmpBody"></tbody>
-    </table>
-    <div id="cmpStatus" class="empty"></div>
-  </section>
+    <section class="panel result-panel" id="resultPanel" hidden aria-labelledby="resultTitle">
+      <div class="panel-head">
+        <div><p class="section-kicker">ASSESSMENT</p><h2 id="resultTitle">本次参考评估</h2></div>
+        <button id="exportReportBtn" class="secondary-btn compact">导出本次报告</button>
+      </div>
+      <div id="suitChips" class="chips"></div>
+      <div id="bloatBox" class="bloat"></div>
+      <button id="retryBtn" class="primary-btn">重新检测</button>
+    </section>
 
-  <section class="panel" id="resultPanel" hidden>
-    <h2>测试结论</h2>
-    <div id="suitChips" class="chips"></div>
-    <div id="bloatBox" class="bloat"></div>
-    <button id="retryBtn" class="primary">再测一次</button>
-  </section>
+    <section class="panel" aria-labelledby="infoTitle">
+      <div class="panel-head"><div><p class="section-kicker">ENVIRONMENT</p><h2 id="infoTitle">网络环境</h2></div><span class="subtle-label">第三方接口获取</span></div>
+      <div class="info-grid" id="infoGrid">
+        <div class="info"><span class="i-label">公网 IP</span><span class="i-value" id="infoIp">等待检测</span></div>
+        <div class="info"><span class="i-label">运营商 / ASN</span><span class="i-value" id="infoIsp">等待检测</span></div>
+        <div class="info"><span class="i-label">出口位置</span><span class="i-value" id="infoLoc">等待检测</span></div>
+        <div class="info"><span class="i-label">Cloudflare 节点</span><span class="i-value" id="infoColo">等待检测</span></div>
+        <div class="info"><span class="i-label">IP 类型</span><span class="i-value" id="infoIpType">等待检测</span></div>
+        <div class="info"><span class="i-label">代理参考提示</span><span class="i-value" id="infoProxy">等待检测</span></div>
+      </div>
+      <p class="fine-print">时区不同只能作为代理或跨境出口的参考线索，不能单独证明正在使用代理。</p>
+    </section>
 
-  <section class="panel">
-    <h2>网络环境信息</h2>
-    <div class="info-grid" id="infoGrid">
-      <div class="info"><span class="i-label">公网 IP</span><span class="i-value" id="infoIp">获取中…</span></div>
-      <div class="info"><span class="i-label">运营商 / ASN</span><span class="i-value" id="infoIsp">获取中…</span></div>
-      <div class="info"><span class="i-label">位置</span><span class="i-value" id="infoLoc">获取中…</span></div>
-      <div class="info"><span class="i-label">Cloudflare 节点</span><span class="i-value" id="infoColo">获取中…</span></div>
-      <div class="info"><span class="i-label">IP 类型</span><span class="i-value" id="infoIpType">获取中…</span></div>
-      <div class="info"><span class="i-label">代理检测</span><span class="i-value" id="infoProxy">获取中…</span></div>
-    </div>
-  </section>
+    <section class="panel" id="diagPanel" hidden aria-labelledby="diagTitle">
+      <div class="panel-head"><div><p class="section-kicker">LOCAL DIAGNOSTICS</p><h2 id="diagTitle">系统级诊断</h2><p class="panel-desc">由本地 Python 服务执行；诊断期间会暂停其他测量任务。</p></div><span class="badge on">同源 + 令牌保护</span></div>
+      <div class="diag-btns">
+        <button data-diag="wifi">WiFi 信号质量</button>
+        <button data-diag="netinfo">本机网络摘要</button>
+        <button data-diag="ping" data-host="223.5.5.5">Ping 阿里 DNS</button>
+        <button data-diag="ping" data-host="8.8.8.8">Ping Google DNS</button>
+        <button data-diag="pathping" data-host="www.baidu.com">每跳丢包 · 约 1 分钟</button>
+        <button data-diag="trace" data-host="www.baidu.com">路由追踪</button>
+        <button data-diag="dnscompare" data-host="github.com">DNS 解析差异</button>
+        <button data-diag="dns" data-host="www.baidu.com">系统 DNS 解析</button>
+        <button data-diag="port" data-host="baidu.com" data-port="443">TCP 443 · 百度</button>
+        <button data-diag="port" data-host="github.com" data-port="443">TCP 443 · GitHub</button>
+        <button data-diag="port" data-host="223.5.5.5" data-port="53">TCP 53 · DNS</button>
+      </div>
+      <pre id="diagOut" class="diag-out" tabindex="0">选择一个项目开始诊断。DNS 地址差异可能由 CDN 调度造成，不直接等同于污染。</pre>
+    </section>
 
-  <!-- ============ 系统级诊断 ============ -->
-  <section class="panel" id="diagPanel" hidden>
-    <h2>系统级诊断 <span class="tag">由 server.py 提供</span></h2>
-    <div class="diag-btns">
-      <button data-diag="wifi">WiFi 信号质量</button>
-      <button data-diag="netinfo">本机网络摘要</button>
-      <button data-diag="ping" data-host="223.5.5.5">Ping 223.5.5.5</button>
-      <button data-diag="ping" data-host="8.8.8.8">Ping 8.8.8.8</button>
-      <button data-diag="pathping" data-host="www.baidu.com">每跳丢包（约 1 分钟）</button>
-      <button data-diag="trace" data-host="www.baidu.com">路由追踪</button>
-      <button data-diag="dnscompare" data-host="github.com">DNS 污染对比</button>
-      <button data-diag="dns" data-host="www.baidu.com">DNS 解析测速</button>
-      <button data-diag="port" data-host="baidu.com" data-port="443">TCP 443（百度）</button>
-      <button data-diag="port" data-host="github.com" data-port="443">TCP 443（GitHub）</button>
-      <button data-diag="port" data-host="223.5.5.5" data-port="53">TCP 53（DNS）</button>
-    </div>
-    <pre id="diagOut" class="diag-out">点击上方按钮运行系统级诊断…</pre>
-  </section>
+    <section class="panel" aria-labelledby="historyTitle">
+      <div class="panel-head">
+        <div><p class="section-kicker">LOCAL HISTORY</p><h2 id="historyTitle">本机最近记录</h2><p class="panel-desc">最多保留 50 次，仅用于回顾单次快照，不作为长期监控数据库。</p></div>
+        <div class="button-group"><button id="exportHist" class="ghost-btn">导出 CSV</button><button id="clearHist" class="ghost-btn danger">清空</button></div>
+      </div>
+      <div class="table-wrap">
+        <table class="hist" id="histTable">
+          <thead><tr><th>时间</th><th>下载</th><th>上传</th><th>延迟</th><th>抖动</th><th>失败率</th><th>膨胀</th></tr></thead>
+          <tbody id="histBody"></tbody>
+        </table>
+      </div>
+      <p class="empty" id="histEmpty">暂无记录，完成一次测试后自动保存在当前浏览器。</p>
+    </section>
 
-  <section class="panel">
-    <h2>历史记录 <button id="clearHist" class="ghost">清空</button></h2>
-    <table class="hist" id="histTable">
-      <thead><tr><th>时间</th><th>下载 Mbps</th><th>上传 Mbps</th><th>延迟 ms</th><th>抖动 ms</th><th>丢包 %</th><th>膨胀等级</th></tr></thead>
-      <tbody id="histBody"></tbody>
-    </table>
-    <p class="empty" id="histEmpty">暂无记录，完成一次测试后自动保存（仅存本机浏览器）</p>
-  </section>
+    <details class="method-note">
+      <summary>测量方法与判读边界</summary>
+      <div>
+        <p><strong>速率：</strong>跳过预热段后计算稳定期吞吐。下载按实际接收字节统计；上传按浏览器发送进度统计，并要求至少一次服务端成功响应。</p>
+        <p><strong>延迟与失败率：</strong>针对 Cloudflare 的 HTTP 探测，不是 ICMP Ping，也不代表任意游戏或会议服务器。</p>
+        <p><strong>Bufferbloat：</strong>分别比较下载、上传满载与空载中位延迟，同时考虑毫秒增量和相对增幅。</p>
+        <p><strong>隐私：</strong>历史仅存当前浏览器。测速与环境识别会访问 Cloudflare、ipwho.is；国内对比和 DoH 诊断还会访问相应公共服务。</p>
+      </div>
+    </details>
+  </main>
 
-</main>
-
-<footer>下载 / 上传 / 延迟均通过 Cloudflare 公共测速端点（speed.cloudflare.com）以 HTTPS 实测；国内节点经 server.py 直连中转；页面与数据完全保留在本机。</footer>
-
-<script src="app.js"></script>
+  <footer><strong>NetScope</strong><span>一次性网络快照，而非长期质量证明。</span><span>本地界面 · 公共节点实测 · 无第三方代码依赖</span></footer>
+  <script src="metrics.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>

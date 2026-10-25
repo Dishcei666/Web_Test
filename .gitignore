@@ -16,6 +16,7 @@ desktop.ini
 # 本地临时文件
 *.log
 *.tmp
+.browser-smoke/
 
 # 内部资料（不公开）
 网络测速记录仪-提取与分析.md

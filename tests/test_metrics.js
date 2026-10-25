@@ -1,0 +1,27 @@
+'use strict';
+const assert = require('node:assert/strict');
+const m = require('../metrics.js');
+
+assert.equal(m.fmtSpeed(123.4), '123');
+assert.equal(m.fmtSpeed(12.34), '12.3');
+assert.equal(m.fmtSpeed(1.234), '1.23');
+assert.equal(m.median([4, 1, 3]), 3);
+assert.equal(m.median([4, 1, 3, 2]), 2.5);
+assert.equal(m.percentile([1, 2, 3, 4], 0.9), 3.7);
+assert.equal(m.jitter([10, 14, null, 11]), 3.5);
+assert.equal(m.jitter([10]), 0);
+assert.equal(m.instSpeed([{ t: 0, b: 0 }, { t: 1000, b: 125000 }], 1000), 1);
+const stable = m.stableSpeed([{ t: 0, b: 0 }, { t: 1000, b: 125000 }, { t: 5000, b: 625000 }], 1000);
+assert.equal(stable.bytes, 500000);
+assert.equal(stable.durationMs, 4000);
+assert.equal(stable.mbps, 1);
+assert.equal(m.stableSpeed([{ t: 0, b: 0 }, { t: 100, b: 1000 }], 0).mbps, 0);
+assert.equal(m.bloatGrade(20, 21).g, 'A+');
+assert.equal(m.bloatGrade(2, 3).g, 'A+', '低延迟下的小绝对增量不应被比例放大');
+assert.equal(m.bloatGrade(100, 108).g, 'A');
+assert.equal(m.bloatGrade(20, 35).g, 'C');
+assert.equal(m.bloatGrade(20, 45).g, 'D');
+assert.equal(m.bloatGrade(20, 200).g, 'F');
+assert.equal(m.bloatGrade(20, null).g, '--');
+assert.equal(m.suitability({ d: 100, u: 20, ping: 20, jitter: 2, loss: 0 }).length, 5);
+console.log('metrics.js: 所有算法测试通过');
